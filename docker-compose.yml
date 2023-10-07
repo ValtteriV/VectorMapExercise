@@ -8,6 +8,13 @@ services:
       - '5432:5432'
     volumes: 
       - db:/var/lib/postgresql/data
+  web:
+    image: nginx
+    volumes:
+      - ./nginx/:/etc/nginx/conf.d
+      - ./backend/static:/usr/share/nginx/html
+    ports:
+      - "8080:80"
 volumes:
   db:
     driver: local
