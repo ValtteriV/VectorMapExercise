@@ -12,9 +12,10 @@ class PointView(APIView):
         serializer = PointSerializer(data=data)
 
         if serializer.is_valid():
-            serializer.save()
-            return JsonResponse('Point added!', safe=False)
-        return JsonResponse('Failed to add Point', safe=false)
+            point = serializer.save()
+            resp = PointSerializer(point)
+            return Response(resp.data)
+        return JsonResponse('Failed to add Point', safe=False)
 
     def get_point(self, pk):
         try:

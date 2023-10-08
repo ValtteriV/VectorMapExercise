@@ -1,3 +1,5 @@
+const apiEndpont = `http://${import.meta.env.VITE_api_host}${import.meta.env.VITE_api_port ? ':' + import.meta.env.VITE_api_port : ''}/api`;
+
 function setCookie(cname, cvalue, exdays) {
   const d = new Date();
   d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
@@ -5,7 +7,7 @@ function setCookie(cname, cvalue, exdays) {
   document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
 }
 
-function getCookie(cname) {
+export function getCookie(cname) {
   let name = cname + "=";
   let ca = document.cookie.split(';');
   for(let i = 0; i < ca.length; i++) {
@@ -20,28 +22,76 @@ function getCookie(cname) {
   return "";
 }
 
+const event = new Event("auth-success");
+const map = document.getElementById('map');
+
 function checkCookie() {
-  let user = getCookie("username");
-  if (user == "") {
+  let auth = getCookie("auth");
+  if (auth == "") {
     const loginDialog = document.getElementById('dialog');
     loginDialog.showModal();
-    //user = prompt("Please enter your name:", "");
-    if (user != "" && user != null) {
-      setCookie("username", user, 365);
-    }
+  } else {
+    map.dispatchEvent(event);
   }
+}
+
+function basicAuth(user, password) {
+  const token = user + ':' + password;
+  return `Basic ${btoa(token)}`;  
 }
 
 const submitLogin = document.getElementById('submit-login');
 console.log(submitLogin);
-submitLogin.addEventListener('click', (e) => {
+submitLogin.addEventListener('click', async (e) => {
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  const auth = basicAuth(username, password);
   e.preventDefault();
-  console.log(e);
+  const resp = await fetch(`${apiEndpont}/login/`, {
+    method: "GET",
+    headers: {
+      Authorization: auth
+    }
+  })
+  const res = await resp.json();
+  if (res.id) {
+    sessionStorage.setItem('userId', res.id);
+    setCookie('auth', auth, 7);
+    //Better way to do this would be to fetch user based on auth on each login
+    setCookie('userId', res.id, 7);
+    const loginDialog = document.getElementById('dialog');
+    loginDialog.close();
+    map.dispatchEvent(event);
+
+  }
+  console.log(res);
 });
 
 const submitRegister = document.getElementById('submit-register');
-submitRegister.addEventListener('click', (e) => {
+submitRegister.addEventListener('click', async (e) => {
   e.preventDefault();
+  const username = document.getElementById('username').value;
+  const password = document.getElementById('password').value;
+  const auth = basicAuth(username, password);
+  e.preventDefault();
+  const resp = await fetch(`${apiEndpont}/register/`, {
+    method: "POST",
+    body: JSON.stringify({
+      username,
+      password
+    }),
+    headers: {
+      "Content-type": 'application/json; charset=UTF-8'
+    }
+  })
+  const res = await resp.json();
+  if (res.id) {
+    sessionStorage.setItem('userId', res.id);
+    setCookie('auth', auth, 7);
+    const loginDialog = document.getElementById('dialog');
+    loginDialog.close();
+    map.dispatchEvent(event);
+  }
 });
 
 checkCookie();

@@ -14,8 +14,19 @@ import VectorSource from 'ol/source/Vector.js';
 import Vector from 'ol/layer/Vector.js';
 import {Select, Translate} from 'ol/interaction';
 import Overlay from 'ol/Overlay.js';
+import { getCookie } from './checkLogin';
 
 const key = import.meta.env.VITE_api_key;
+const apiEndpont = `http://${import.meta.env.VITE_api_host}${import.meta.env.VITE_api_port ? ':' + import.meta.env.VITE_api_port : ''}/api`;
+
+//Don't do this or anything relating to authorization in the project
+let auth = getCookie('auth');
+let userId = getCookie('userId');
+
+const refreshDetails = () => {
+  auth = getCookie('auth');
+  userId = sessionStorage.getItem('userId');
+};
 
 const refreshLabel = (feature) => {
   feature.getStyle().getText().setText(feature.get('label'));
@@ -32,6 +43,7 @@ labelInput.addEventListener('keypress', (e) => {
     selectedPoint && selectedPoint.set('label', labelInput.value);
     refreshLabel(selectedPoint);
     selectInteraction.dispatchEvent({ type: 'click', deselected: selectedPoint, selected: [] });
+    updatePoint(selectedPoint);
   }
 });
 
@@ -108,6 +120,15 @@ const style = new Style({
   text: new Text({offsetY: 20, scale: 2})
 });
 
+const myStyle = new Style({
+  image: new Circle({
+    radius: 8,
+    stroke: new Stroke({color: '#d0d', width: 3}),
+    fill: new Fill({color: '#000'}),
+  }),
+  text: new Text({offsetY: 20, scale: 2})
+});
+
 const drawStyle = new Style({
   image: new Circle({
     radius: 8,
@@ -132,21 +153,103 @@ const selStyl = new Style({
 const feat = new Feature({ geometry: new Point([2771857, 8437906]), label: 'testi' });
 const feat1 = new Feature({ geometry: new Point([2771857, 8439106]), label: 'testi1' });
 const feat2 = new Feature({ geometry: new Point([2773057, 8437906]), label: 'testi2' });
+const fetchPoints = async () => {
+  const resp = await fetch(`${apiEndpont}/points/`, { 
+    method: "GET",
+    headers: {
+      Authorization: auth
+    }
+  });
+  const res = await resp.json();
+  console.log(res);
+  const myFeatures = [];
+  const otherFeatures = [];
+  for (const point of res) {
+    const feat = new Feature({ geometry: new Point([point.y, point.x]), pointId: point.pointId, label: point.label, created_by: point.created_by});
+    console.log(`${point.created_by} === ${userId}`);
+    if (point.created_by && point.created_by == userId) {
+      myFeatures.push(feat);
+    } else {
+      otherFeatures.push(feat);
+    }
+  }
+  console.log(`myFeatures ${myFeatures.length}`);
+  console.log(`otherFeatures ${otherFeatures.length}`);
+  myFeaturesSource.addFeatures(myFeatures);
+  otherFeaturesSource.addFeatures(otherFeatures);
+};
+
+const savePoint = async (feat) => {
+  const coords = feat.get('geometry').getCoordinates();
+  const resp = await fetch(`${apiEndpont}/points/`, {
+    method: 'POST',
+    headers: {
+      Authorization: auth,
+      "Content-type": 'application/json; charset=UTF-8'
+    },
+    body: JSON.stringify({
+      x: Math.floor(coords[1]),
+      y: Math.floor(coords[0]),
+      created_by: userId,
+    })
+  });
+  console.log(resp);
+  const data = await resp.json();
+  console.log(data);
+  feat.set('pointId', data.pointId);
+};
+
+const updatePoint = async (feat) => {
+  console.log(feat.getProperties());
+  const pointId = feat.get('pointId');
+  const coords = feat.get('geometry').getCoordinates();
+  const label = feat.get('label');
+
+  const resp = await fetch(`${apiEndpont}/points/${pointId}/`, {
+    method: 'PUT',
+    headers: {
+      Authorization: auth,
+      "Content-type": 'application/json; charset=UTF-8'
+    },
+    body: JSON.stringify({
+      x: Math.floor(coords[1]),
+      y: Math.floor(coords[0]),
+      label: label,
+    })
+  });
+};
 
 /**
  * Define dataLayer and its source, stores interactable features
  * TODO: When users implemented, add second layer that won't be included in the selectInteraction for other users' features
  */
-const source = new VectorSource({ wrapX: false });
-source.addFeature(feat);
-source.addFeature(feat1);
-source.addFeature(feat2);
+const otherFeaturesSource = new VectorSource({ wrapX: false });
+otherFeaturesSource.addFeature(feat);
+otherFeaturesSource.addFeature(feat1);
+otherFeaturesSource.addFeature(feat2);
 
-const dataLayer = new Vector({source, style: (feature) => {
+const otherFeaturesDataLayer = new Vector({source: otherFeaturesSource, style: (feature) => {
   style.getText().setText(feature.get('label'));
   return [style];
 }});
 
+const myFeaturesSource = new VectorSource({ wrapX: false });
+
+const myFeaturesDataLayer = new Vector({source: myFeaturesSource, style: (feature) => {
+  myStyle.getText().setText(feature.get('label'));
+  return [myStyle];
+}});
+
+
+const mapElem = document.getElementById('map');
+mapElem.addEventListener(
+  'auth-success',
+  async (e) => {
+    refreshDetails();
+    await fetchPoints();
+  },
+  false
+);
 
 const map = new Map({
   layers: [
@@ -167,7 +270,8 @@ const map = new Map({
       style: rules,
     }),
     //new TileLayer({source:new OSM()}),
-    dataLayer,
+    otherFeaturesDataLayer,
+    myFeaturesDataLayer
   ],
   overlays: [overlay],
   target: 'map',
@@ -184,13 +288,15 @@ const map = new Map({
  * Draw Interaction behaviour
  */
 const drawInteraction = new Draw({
-  source,
+  source: myFeaturesSource,
   type: 'Point',
   style: drawStyle,
 });
 
-drawInteraction.on('drawstart', (e) => {
-  console.log(e);
+drawInteraction.on('drawstart', async (e) => {
+  console.log(e.feature.get('geometry').getCoordinates());
+  console.log(e.feature.getProperties());
+  await savePoint(e.feature);
 });
 
 /**
@@ -201,7 +307,7 @@ const selectInteraction = new Select({
     return e.type === 'click';
   },
   style: selStyl,
-  layers: [dataLayer]
+  layers: [myFeaturesDataLayer]
 });
 
 selectInteraction.on('select', (e) => {
@@ -232,11 +338,13 @@ let selectedPoint;
  */
 
 const translateInteraction = new Translate({
-  features: selectInteraction.getFeatures()
+  features: selectInteraction.getFeatures(),
+  layers: [myFeaturesDataLayer]
 });
 translateInteraction.on('translateend', (e) => {
   console.log(e);
   overlay.setPosition(selectedPoint.get('geometry').getCoordinates());
+  updatePoint(selectedPoint);
 });
 
 map.addInteraction(translateInteraction);
@@ -271,3 +379,7 @@ selectButton.onclick = addSelectPointEvent;
 
 const drawButton = document.getElementById('draw-button');
 drawButton.onclick = addDrawPointEvent;
+
+if (auth !== '') {
+  fetchPoints();
+}

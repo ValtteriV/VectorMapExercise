@@ -7,4 +7,5 @@ class PointSerializer(serializers.ModelSerializer):
         fields = ('pointId',
                     'x',
                     'y',
-                    'label')
+                    'label',
+                    'created_by')
