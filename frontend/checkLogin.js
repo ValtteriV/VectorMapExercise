@@ -23,7 +23,7 @@ export function getCookie(cname) {
 }
 
 
-export async function checkCookie() {
+export async function checkLogin() {
   let auth = getCookie("auth");
   if (auth == "") {
     const loginDialog = document.getElementById('dialog');

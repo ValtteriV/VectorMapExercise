@@ -14,11 +14,11 @@ import Vector from 'ol/layer/Vector.js';
 import {Select, Translate} from 'ol/interaction';
 import Overlay from 'ol/Overlay.js';
 import Control from 'ol/control/Control';
-import { getCookie, checkCookie } from './checkLogin';
+import { getCookie, checkLogin } from './checkLogin';
 import { API } from './API';
 import { style, myStyle, selStyl, drawStyle, rules } from './styles';
 
-checkCookie();
+checkLogin();
 
 const key = import.meta.env.VITE_api_key;
 
@@ -197,6 +197,8 @@ const selectInteraction = new Select({
   layers: [myFeaturesDataLayer]
 });
 
+let selectedPoint;
+
 selectInteraction.on('select', (e) => {
   //Clicked away
   if (e.selected.length === 0) {
@@ -216,8 +218,6 @@ selectInteraction.on('select', (e) => {
   labelInput.value = selectedPoint.get('label') || '';
   labelInput.focus();
 });
-
-let selectedPoint;
 
 
 /**
@@ -240,6 +240,11 @@ map.addInteraction(translateInteraction);
  * Define onClick functions for buttons to change map interaction mode
  */
 const addDrawPointEvent = () => {
+  if (selectedPoint) {
+    selectedPoint = null;
+    overlay.setPosition(undefined);
+    selectInteraction.getFeatures().clear();
+  }
   if (selectedInteraction !== null) {
     map.removeInteraction(selectedInteraction);
   }
