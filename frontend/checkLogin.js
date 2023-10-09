@@ -1,4 +1,4 @@
-const apiEndpont = `http://${import.meta.env.VITE_api_host}${import.meta.env.VITE_api_port ? ':' + import.meta.env.VITE_api_port : ''}/api`;
+import { API } from "./API";
 
 function setCookie(cname, cvalue, exdays) {
   const d = new Date();
@@ -22,16 +22,23 @@ export function getCookie(cname) {
   return "";
 }
 
-const event = new Event("auth-success");
-const map = document.getElementById('map');
 
-function checkCookie() {
+export async function checkCookie() {
   let auth = getCookie("auth");
   if (auth == "") {
     const loginDialog = document.getElementById('dialog');
     loginDialog.showModal();
   } else {
-    map.dispatchEvent(event);
+    const res = await API.login(auth);
+    if (res.id) {
+      sessionStorage.setItem('userId', res.id);
+      const event = new Event("auth-success");
+      const map = document.getElementById('map');
+      map.dispatchEvent(event);
+    } else {
+      document.cookie = undefined;
+      loginDialog.showModal();
+    }
   }
 }
 
@@ -47,13 +54,7 @@ submitLogin.addEventListener('click', async (e) => {
   const password = document.getElementById('password').value;
   const auth = basicAuth(username, password);
   e.preventDefault();
-  const resp = await fetch(`${apiEndpont}/login/`, {
-    method: "GET",
-    headers: {
-      Authorization: auth
-    }
-  })
-  const res = await resp.json();
+  const res = await API.login(auth);
   if (res.id) {
     sessionStorage.setItem('userId', res.id);
     setCookie('auth', auth, 7);
@@ -94,4 +95,3 @@ submitRegister.addEventListener('click', async (e) => {
   }
 });
 
-checkCookie();
