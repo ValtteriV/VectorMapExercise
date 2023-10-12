@@ -14,15 +14,6 @@ export const rules = [
   },
   {
     else: true,
-    filter: ['all', ['==', ['get', 'layer'], 'roads'], ['get', 'railway']],
-    style: {
-      'stroke-color': '#7de',
-      'stroke-width': 1,
-      'z-index': ['number', ['get', 'sort_key'], 0],
-    },
-  },
-  {
-    else: true,
     filter: ['==', ['get', 'layer'], 'roads'],
     style: {
       'stroke-color': [
@@ -42,6 +33,25 @@ export const rules = [
   },
   {
     else: true,
+    filter: ['==', ['get', 'layer'], 'boundaries'],
+    style: {
+      'stroke-color': [
+        'match',
+        ['get', 'kind'],
+        'county',
+        '#aa7',
+        'region',
+        '#5a9',
+        'country',
+        '#f00',
+        'none',
+      ],
+      'stroke-width': ['match', ['get', 'kind'], 'country', 3, 'region', 2, 'county', 1.5],
+      'z-index': ['number', ['get', 'sort_key'], 0]
+      },
+  },
+  {
+    else: true,
     filter: [
       'all',
       ['==', ['get', 'layer'], 'buildings'],
@@ -50,6 +60,15 @@ export const rules = [
     style: {
       'fill-color': '#6666',
       'stroke-color': '#4446',
+      'stroke-width': 1,
+      'z-index': ['number', ['get', 'sort_key'], 0],
+    },
+  },
+  {
+    else: true,
+    filter: ['all', ['==', ['get', 'layer'], 'roads'], ['get', 'railway']],
+    style: {
+      'stroke-color': '#7de',
       'stroke-width': 1,
       'z-index': ['number', ['get', 'sort_key'], 0],
     },

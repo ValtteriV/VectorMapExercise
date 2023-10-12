@@ -14,13 +14,13 @@ import Vector from 'ol/layer/Vector.js';
 import {Select, Translate} from 'ol/interaction';
 import Overlay from 'ol/Overlay.js';
 import Control from 'ol/control/Control';
-import { getCookie, checkLogin } from './checkLogin';
+import { getCookie, checkLogin, clearCookies } from './checkLogin';
 import { API } from './API';
 import { style, myStyle, selStyl, drawStyle, rules } from './styles';
 
 checkLogin();
 
-const key = import.meta.env.VITE_api_key;
+const key = import.meta.env.VITE_vector_api_key;
 
 //Don't do this or anything relating to authorization in the project
 let auth = getCookie('auth');
@@ -39,7 +39,6 @@ const refreshLabel = (feature) => {
  * Popup element
  */
 const container = document.getElementById('popup');
-const content = document.getElementById('popup-content');
 const labelInput = document.getElementById('label-input');
 labelInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') {
@@ -64,6 +63,17 @@ const overlayButtons = new Control({
   element: buttons
 });
 
+const logout = document.getElementById('logout');
+const overlayLogout = new Control({
+  element: logout
+});
+
+const logoutButton = document.getElementById('logout-button');
+logoutButton.onclick = (e) => {
+  console.log('logging out byeee');
+  clearCookies();
+  window.location.reload();
+}
 
 /**
  * Fetches and updates points to the map.
@@ -137,16 +147,16 @@ mapElem.addEventListener(
   false
 );
 
-const map = new Map({
-  layers: [
-    new VectorTileLayer({
+const getBackgroundMap = () => {
+  if (import.meta.env.VITE_use_vector === 'true') {
+    return new VectorTileLayer({
       source: new VectorTileSource({
         attributions:
           '&copy; OpenStreetMap contributors, Who’s On First, ' +
           'Natural Earth, and osmdata.openstreetmap.de',
         format: new TopoJSON({
           layerName: 'layer',
-          layers: ['water', 'roads', 'buildings'],
+          layers: ['water', 'roads', 'buildings', 'boundaries'],
         }),
         maxZoom: 16,
         url:
@@ -154,13 +164,20 @@ const map = new Map({
           key,
       }),
       style: rules,
-    }),
-    //new TileLayer({source:new OSM()}),
+    }); 
+  } else {
+    return new TileLayer({source:new OSM()});
+  }
+};
+
+const map = new Map({
+  layers: [
+    getBackgroundMap(),
     otherFeaturesDataLayer,
     myFeaturesDataLayer
   ],
   overlays: [overlay],
-  controls: [overlayButtons],
+  controls: [overlayButtons, overlayLogout],
   target: 'map',
   view: new View({
     center: fromLonLat([24.90157, 60.16646]),
@@ -267,8 +284,16 @@ let selectedInteraction = drawInteraction;
 map.addInteraction(drawInteraction);
 
 const selectButton = document.getElementById('select-button');
-selectButton.onclick = addSelectPointEvent;
 
 const drawButton = document.getElementById('draw-button');
-drawButton.onclick = addDrawPointEvent;
+drawButton.onclick = () => {
+  drawButton.classList.add('active-mode');
+  selectButton.classList.remove('active-mode');
+  addDrawPointEvent();
+};
 
+selectButton.onclick = () => {
+  selectButton.classList.add('active-mode');
+  drawButton.classList.remove('active-mode');
+  addSelectPointEvent();
+};

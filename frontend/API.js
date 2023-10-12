@@ -1,12 +1,14 @@
 import { getCookie } from "./checkLogin";
 
-const apiEndpoint = `http://${import.meta.env.VITE_api_host}${import.meta.env.VITE_api_port ? ':' + import.meta.env.VITE_api_port : ''}/api`;
+const apiEndpoint = import.meta.env.VITE_use_reverse_proxy_backend === 'true' 
+? ''
+: `http://${import.meta.env.VITE_api_host}${import.meta.env.VITE_api_port ? ':' + import.meta.env.VITE_api_port : ''}`;
 let userAuth = undefined;
 let userId = undefined;
 export const API = {
 
   login: async (auth) => {
-    const resp = await fetch(`${apiEndpoint}/login/`, {
+    const resp = await fetch(`${apiEndpoint}/api/login/`, {
       method: "GET",
       headers: {
         Authorization: auth
@@ -16,7 +18,7 @@ export const API = {
   },
 
   register: async (username, password) => {
-    const resp = await fetch(`${apiEndpoint}/register/`, {
+    const resp = await fetch(`${apiEndpoint}/api/register/`, {
       method: "POST",
       body: JSON.stringify({
         username,
@@ -34,7 +36,7 @@ export const API = {
       userAuth = getCookie('auth');
       userId = sessionStorage.getItem('userId');
     }
-    const resp = await fetch(`${apiEndpoint}/points/`, { 
+    const resp = await fetch(`${apiEndpoint}/api/points/`, { 
       method: "GET",
       headers: {
         Authorization: userAuth
@@ -48,7 +50,7 @@ export const API = {
       userAuth = getCookie('auth');
       userId = sessionStorage.getItem('userId');
     }
-    const resp = await fetch(`${apiEndpoint}/points/`, {
+    const resp = await fetch(`${apiEndpoint}/api/points/`, {
       method: 'POST',
       headers: {
         Authorization: userAuth,
@@ -73,7 +75,7 @@ export const API = {
     const coords = feature.get('geometry').getCoordinates();
     const label = feature.get('label');
 
-    const resp = await fetch(`${apiEndpoint}/points/${pointId}/`, {
+    const resp = await fetch(`${apiEndpoint}/api/points/${pointId}/`, {
       method: 'PUT',
       headers: {
         Authorization: userAuth,

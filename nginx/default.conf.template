@@ -12,6 +12,32 @@ server {
         index  index.html index.htm;
     }
 
+    #location /tilezen {
+	#set $delimeter "";
+
+  	#if ($is_args) {
+    	#  set $delimeter "&";
+  	#}
+	#resolver 8.8.8.8 valid=30s;
+
+	#set $api_query "?api_key=$VECTORNOTWORKINGAPIKEY";
+	#set $args "$args${delimeter}api_key=$VECTORNOTWORKINGAPIKEY";
+ 	#proxy_pass http://tile.nextzen.org;
+    #    rewrite ^/(.*)$ /$1?api_key=$VECTORNOTWORKINGAPIKEY last;
+    #    proxy_set_header HOST $host;
+    #    proxy_set_header Referer $http_referer;
+    #    proxy_set_header X-Forwarded-For $remote_addr;
+    #    proxy_set_header X-Forwarded-Proto $scheme;
+    #}
+
+    location /api/ {
+        proxy_pass http://$BACKENDURL:8000/api/;
+        proxy_set_header HOST $host;
+        proxy_set_header Referer $http_referer;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     #error_page  404              /404.html;
 
     # redirect server error pages to the static page /50x.html
@@ -33,7 +59,7 @@ server {
     #    root           html;
     #    fastcgi_pass   127.0.0.1:9000;
     #    fastcgi_index  index.php;
-    #    fastcgi_param  SCRIPT_FILENAME  /scripts$fastcgi_script_name;
+    #    fastcgi_param  SCRIPT_FILENAME  /scripts;
     #    include        fastcgi_params;
     #}
 
