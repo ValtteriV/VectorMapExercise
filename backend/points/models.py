@@ -8,6 +8,7 @@ class Point(models.Model):
     """
 
     pointId = models.AutoField(primary_key=True)
+    # TODO: migrate to DecimalField
     x = models.IntegerField()
     y = models.IntegerField()
     label = models.CharField(max_length=100, blank=True, default='')
