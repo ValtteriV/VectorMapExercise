@@ -50,7 +50,7 @@ class PointView(APIView):
         """
 
         point_to_update = Point.objects.get(pointId=pk)
-        if request.user.id != point_to_update.created_by or request.user.is_superuser:
+        if request.user.id != point_to_update.created_by_id or request.user.is_superuser:
             return Response('No permission to update Point')
         serializer = PointSerializer(instance=point_to_update,
             data=request.data, partial=True)
