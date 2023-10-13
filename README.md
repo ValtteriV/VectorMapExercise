@@ -5,11 +5,12 @@ This exercise was used to learn about various technologies. A small write-up abo
 
 # Running the project
 
-## Requirements
+## Build and deploying
+
+#### Requirements
 - Node.js  
 - Docker  
 
-## Build and deploying
 ### Backend
 Make a copy of the .env.Example file in the root of the project and name it ".env".
 If you're using a different Postgres instance to run the application that isn't defined in the docker-compose.yml, make sure the following variables are correct: 
@@ -49,6 +50,12 @@ docker-container up -d web
 to launch the Nginx container. The application will be available at http://localhost:8080.
 
 ## Running with hot reload
+
+#### Requirements
+- Node.js    
+- Python
+
+### 
 
 You can run the Django and Frontend applications with hot reload without Docker. The frontend can be started on http://localhost:5173 by running the following command inside frontend/
 ```bash
